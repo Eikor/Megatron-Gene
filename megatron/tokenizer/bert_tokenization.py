@@ -161,10 +161,10 @@ def whitespace_tokenize(text):
 class FullTokenizer(object):
     """Runs end-to-end tokenziation."""
 
-    def __init__(self, vocab_file, do_lower_case=True):
+    def __init__(self, vocab_file, do_lower_case=True, punctuation=True):
         self.vocab = load_vocab(vocab_file)
         self.inv_vocab = {v: k for k, v in self.vocab.items()}
-        self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
+        self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case, punctuation=punctuation)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
 
     def tokenize(self, text):
@@ -217,13 +217,14 @@ class FullTokenizer(object):
 class BasicTokenizer(object):
     """Runs basic tokenization (punctuation splitting, lower casing, etc.)."""
 
-    def __init__(self, do_lower_case=True):
+    def __init__(self, do_lower_case=True, punctuation=True):
         """Constructs a BasicTokenizer.
 
         Args:
           do_lower_case: Whether to lower case the input.
         """
         self.do_lower_case = do_lower_case
+        self.punctuation = punctuation
 
     def tokenize(self, text):
         """Tokenizes a piece of text."""
@@ -268,7 +269,7 @@ class BasicTokenizer(object):
         output = []
         while i < len(chars):
             char = chars[i]
-            if _is_punctuation(char):
+            if _is_punctuation(char) and self.punctuation:
                 output.append([char])
                 start_new_word = True
             else:

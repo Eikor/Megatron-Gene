@@ -714,6 +714,8 @@ def _add_training_args(parser):
                        'uniformly divided recompute unit, '
                        '2) block: the number of individual Transformer layers '
                        'to recompute within each pipeline stage.')
+    group.add_argument('--freeze-wte', action='store_true')
+    group.add_argument('--gene-vocab', action='store_false', dest='punctuation')
 
     # deprecated
     group.add_argument('--checkpoint-activations', action='store_true',

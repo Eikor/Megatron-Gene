@@ -40,7 +40,7 @@ from megatron.utils import calc_params_l2_norm
 from megatron.core.pipeline_parallel import get_forward_backward_func
 from megatron.utils import report_memory
 from megatron.model.vision.knn_monitor import compute_feature_bank
-
+from megatron.model import UCEModel
 
 def print_datetime(string):
     """Note that this call will sync across all ranks."""
@@ -452,6 +452,8 @@ def train_step(forward_step_func, data_iterator,
                                        (torchDDP, LocalDDP, Float16Module))
         unwrapped_model.cancel_gradients_last_layer(args.curr_iteration)
 
+    if args.freeze_wte:
+        unwrap_model(model[0], (torchDDP, LocalDDP, Float16Module)).word_embeddings_weight().main_grad *= 0
     # Update parameters.
     timers('optimizer', log_level=1).start(barrier=args.barrier_with_L1_time)
     update_successful, grad_norm, num_zeros_in_grad = optimizer.step(args, timers)
@@ -739,6 +741,16 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                                        valid_data_iterator, model,
                                        iteration, process_non_loss_data_func,
                                        False)
+            if args.freeze_wte:
+                for model_module in model:
+                    module = unwrap_model(model_module, (torchDDP, LocalDDP, Float16Module))
+                    if module.pre_process: # load pre-trained wte for first stage
+                        module.language_model.embedding.word_embeddings.load_state_dict({'weight':torch.load('wte.pt')})
+                    elif mpu.is_pipeline_last_stage(): # if is last stage, preparing for copy
+                        module.word_embeddings.weight.data.fill_(0)
+                    if mpu.is_rank_in_embedding_group(): # copy first stage wte to last
+                        torch.distributed.all_reduce(module.word_embeddings_weight().data,
+                                                        group=mpu.get_embedding_group())
 
         # Checkpointing
         saved_checkpoint = False

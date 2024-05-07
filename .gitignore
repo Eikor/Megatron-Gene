@@ -6,3 +6,9 @@ build
 *~
 slurm*
 logs
+**.npy
+**.bin
+**.idx
+**.pt
+.vscode
+*.txt

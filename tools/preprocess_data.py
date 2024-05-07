@@ -222,6 +222,7 @@ def get_args():
                         help='Number of file partitions')
     group.add_argument('--log-interval', type=int, default=1000,
                        help='Interval between progress updates')
+    group.add_argument('--gene-vocab', action='store_false', dest='punctuation')
     args = parser.parse_args()
     args.keep_empty = False
 
